@@ -72,3 +72,14 @@ func handlerUsers(s *state, cmd command) error {
 	}
 	return nil
 }
+
+func handlerFeeds(s *state, cmd command) error {
+	feeds, err := s.db.GetFeeds(context.Background())
+	if err != nil {
+		return err
+	}
+	for _, feed := range feeds {
+	fmt.Printf("* %v\n* %v\n* %v\n", feed.FeedName, feed.Url, feed.UserName)
+	}
+	return nil 
+}
