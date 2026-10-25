@@ -62,13 +62,9 @@ func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
 	return &feed, nil
 }
 
-func addFeed(s *state, cmd command) error {
-	if len(cmd.args) < 2 {
+func addFeed(s *state, cmd command, user database.User) error {
+	if len(cmd.args) == 0 {
 		return errors.New("Error adding feed!")
-	}
-	current_user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return err
 	}
 	feed, err := s.db.CreateFeed(context.Background(), database.CreateFeedParams{
 		ID:			uuid.New(),
@@ -76,10 +72,20 @@ func addFeed(s *state, cmd command) error {
 		UpdatedAt:	time.Now(),
 		Name:		cmd.args[0],
 		Url:		cmd.args[1],
-		UserID:		current_user.ID,
+		UserID:		user.ID,
 	})
 	if err != nil {
 		return errors.New("CreateFeed failed")
+	}
+	_, err = s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID:			uuid.New(),
+		CreatedAt:	time.Now(),
+		UpdatedAt:	time.Now(),
+		UserID:		user.ID,
+		FeedID:		feed.ID,
+	})	
+	if err != nil {
+		return err
 	}
 	fmt.Printf("%v\n%v\n%v\n%v\n%v\n%v\n", feed.ID, feed.CreatedAt, feed.UpdatedAt, feed.Name, feed.Url, feed.UserID)
 	return nil

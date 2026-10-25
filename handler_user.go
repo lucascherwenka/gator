@@ -11,7 +11,7 @@ import (
 )
 
 func handlerLogin(s *state, cmd command) error {
-	if len(cmd.args) == 0 {
+	if len(cmd.args) != 1 {
 		return errors.New("Login requires a name")
 	}
 
@@ -79,7 +79,59 @@ func handlerFeeds(s *state, cmd command) error {
 		return err
 	}
 	for _, feed := range feeds {
-	fmt.Printf("* %v\n* %v\n* %v\n", feed.FeedName, feed.Url, feed.UserName)
+	fmt.Printf("* %v -- %v -- %v\n", feed.FeedName, feed.Url, feed.UserName)
 	}
 	return nil 
+}
+
+func handlerFollow(s *state, cmd command, user database.User) error {
+	if len(cmd.args) == 0 {
+		return errors.New("Must provide feed to follow")
+	}
+	feed, err := s.db.GetFeedByUrl(context.Background(), cmd.args[0])
+	if err != nil {
+		return err
+	}
+	follow, err := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID:			uuid.New(),
+		CreatedAt:	time.Now(),
+		UpdatedAt:	time.Now(),
+		UserID:		user.ID,
+		FeedID:		feed.ID,
+	})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%v\n%v\n", follow.FeedName, s.cfg.CurrentUserName)
+	fmt.Printf("Looking up URL:%q\n, cmd.args[0]")
+	return nil
+}
+
+func handlerFollowing(s *state, cmd command, user database.User) error {
+	feeds, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)
+	if err != nil {
+		return err
+	}
+	for _, feed := range feeds {
+		fmt.Printf("%v\n", feed.FeedName)
+	}
+	return nil
+}
+
+func handlerUnFollow(s *state, cmd command, user database.User) error {
+	if len(cmd.args) == 0 {
+		return errors.New("Must provide feed to follow")
+	}
+	feed, err := s.db.GetFeedByUrl(context.Background(), cmd.args[0])
+	if err != nil {
+		return err
+	}
+	err = s.db.DeleteFollowForUser(context.Background(), database.DeleteFollowForUserParams{
+		UserID: user.ID,
+		FeedID: feed.ID,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
